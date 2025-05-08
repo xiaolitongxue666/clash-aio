@@ -1,4 +1,4 @@
-FROM dreamacro/clash-premium
+FROM dreamacro/clash
 
 # control ui
 ARG YACD_VERSION=v0.3.8
