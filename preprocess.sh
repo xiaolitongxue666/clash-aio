@@ -31,7 +31,40 @@ if [ ! -f /root/.config/clash/config.yaml ]; then
         ENCODED_URL="${RAW_SUB_URL}"
     fi
     
-    wget -O /root/.config/clash/config.yaml "http://subconverter:25500/sub?target=clash&url=${ENCODED_URL}"
+    # Determine subconverter host - use IP from env if provided, otherwise try hostname
+    SUB_HOST="subconverter"
+    if [ -n "${SUBCONVERTER_IP}" ]; then
+        SUB_HOST="${SUBCONVERTER_IP}"
+    elif ! getent hosts subconverter >/dev/null 2>&1; then
+        # Try to find IP by scanning common network ranges
+        for ip in 5 6 7 8 9 10; do
+            if wget -q -O- --timeout=2 "http://10.89.0.$ip:25500/version" >/dev/null 2>&1; then
+                SUB_HOST="10.89.0.$ip"
+                break
+            fi
+        done
+        if [ "$SUB_HOST" = "subconverter" ]; then
+            for ip in 2 3 4 5 6; do
+                if wget -q -O- --timeout=2 "http://172.21.0.$ip:25500/version" >/dev/null 2>&1; then
+                    SUB_HOST="172.21.0.$ip"
+                    break
+                fi
+            done
+        fi
+    fi
+    
+    # Retry logic for downloading config
+    MAX_RETRIES=15
+    RETRY=0
+    while [ $RETRY -lt $MAX_RETRIES ]; do
+        if wget -O /root/.config/clash/config.yaml "http://${SUB_HOST}:25500/sub?target=clash&url=${ENCODED_URL}" 2>/dev/null; then
+            if [ -f /root/.config/clash/config.yaml ] && [ -s /root/.config/clash/config.yaml ]; then
+                break
+            fi
+        fi
+        RETRY=$((RETRY + 1))
+        sleep 2
+    done
 fi
 
 # Switch to the container command
