@@ -50,6 +50,8 @@ cp .env.example .env
 docker compose up -d
 ```
 
+Windows 用户（Git Bash）可在项目目录下运行 `./run-and-verify.sh` 完成 .env 检查、启动与验证。
+
 3. (可选) 管理代理
 
 查看控制面板: `http://[服务器IP]:9090/ui?hostname=[服务器IP]`
@@ -61,6 +63,16 @@ export https_proxy=http://[服务器IP]:7890
 export http_proxy=http://[服务器IP]:7890
 export all_proxy=socks5://[服务器IP]:7890
 ```
+
+5. (可选) 手动更新订阅
+
+本方案只在容器**首次启动且无 config** 时拉取订阅，之后不会自动更新。需要更新订阅时，可重建容器以重新拉取：
+
+```bash
+docker compose up -d --force-recreate clash-with-ui
+```
+
+或在项目目录运行 `./update-subscription.sh`。注意：仅 `restart` 不会重新拉取，必须**重建**容器（`--force-recreate` 或先 `down` 再 `up`）。
 
 ## 依赖
 
