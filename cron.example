@@ -1,0 +1,3 @@
+# 定时更新 clash-aio 订阅：每天 4 点执行 refresh-subscription.sh
+# 将下面一行加入 crontab -e，并把 /path/to/clash-aio 改为实际项目目录
+# 0 4 * * * cd /path/to/clash-aio && ./refresh-subscription.sh >> /tmp/refresh-clash.log 2>&1

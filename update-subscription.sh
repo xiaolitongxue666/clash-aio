@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# 手动更新订阅：重建 clash-with-ui 容器，使 preprocess 重新从 RAW_SUB_URL 拉取 config
+# 手动更新订阅（兜底）：重建 clash-with-ui 容器，使 preprocess 重新从 RAW_SUB_URL 拉取 config。
+# 日常推荐优先使用 ./refresh-subscription.sh（无重启、不断连）。
 # 用法: ./update-subscription.sh
 
 set -e

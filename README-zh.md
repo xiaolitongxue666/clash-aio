@@ -66,13 +66,17 @@ export all_proxy=socks5://[服务器IP]:7890
 
 5. (可选) 手动更新订阅
 
-本方案只在容器**首次启动且无 config** 时拉取订阅，之后不会自动更新。需要更新订阅时，可重建容器以重新拉取：
+本方案只在容器**首次启动且无 config** 时拉取订阅，之后不会自动更新。
 
-```bash
-docker compose up -d --force-recreate clash-with-ui
-```
+- **推荐（无重启）**：在项目目录运行 `./refresh-subscription.sh`，从 subconverter 拉取新 config 并写入容器后调用 Clash API 重载，不断连。
+- **兜底**：若 refresh 失败（如 API 不可用），可运行 `./update-subscription.sh` 或执行 `docker compose up -d --force-recreate clash-with-ui` 重建容器以重新拉取。注意：仅 `restart` 不会重新拉取，必须**重建**容器。
 
-或在项目目录运行 `./update-subscription.sh`。注意：仅 `restart` 不会重新拉取，必须**重建**容器（`--force-recreate` 或先 `down` 再 `up`）。
+6. (可选) 定时更新订阅
+
+复用上述「推荐」方式，由系统定时执行 `./refresh-subscription.sh` 即可。
+
+- **Linux / WSL / Git Bash**：用 cron。示例（每天 4 点执行）：将 `cron.example` 中的一行加入 `crontab -e`，或放入 `/etc/cron.d/`，并把路径改为你的项目目录。
+- **Windows**：用「任务计划程序」创建基本任务，触发器选「每天」或「每 N 小时」，操作启动程序为 Git Bash 的 `bash.exe`，参数为 `-c "cd /path/to/clash-aio && ./refresh-subscription.sh"`（路径按实际修改）。
 
 ## 依赖
 
