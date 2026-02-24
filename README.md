@@ -46,9 +46,18 @@ or
 docker compose up -d
 ```
 
-3. (Optional) Managment
+On Windows (Git Bash) you can run `./run-and-verify.sh` in the project directory to check .env, start services, and verify (port 9090; 7891–7899 used if 7890 is in use).
 
-View control panel: `http://[server-ip]:9090/ui?hostname=[server-ip]`
+3. (Optional) Management
+
+- **Web control panel**: `http://[server-ip]:9090/ui?hostname=[server-ip]`
+- **CLI scripts** (run in project directory; require curl, pure Bash, no jq):
+  - **List proxies and delay**: `./list-proxy-delay.sh [port] [count]`  
+    e.g. `./list-proxy-delay.sh 9090 20` for first 20 nodes; use 0 as count for all.
+  - **Select proxy by index**: `./select-proxy.sh [port] [count]`  
+    Shows numbered list and delay; enter 1–N to switch, 0 or q to cancel.  
+    e.g. `./select-proxy.sh 9090 10`
+  - **Test proxy on host**: `./test-proxy.sh [port]` (default 7890); hits ipinfo.io to verify proxy.
 
 4. (Optional) Export proxy
 
@@ -57,6 +66,17 @@ export https_proxy=http://[server-ip]:7890
 export http_proxy=http://[server-ip]:7890
 export all_proxy=socks5://[server-ip]:7890
 ```
+
+5. (Optional) Manual subscription update
+
+The stack fetches the subscription only when the container **starts for the first time and has no config**; it does not auto-update afterward.
+
+- **Recommended (no restart)**: Run `./refresh-subscription.sh` in the project directory to pull new config from subconverter, copy into the container, and reload via Clash API.
+- **Fallback**: If refresh fails (e.g. API unavailable), run `./update-subscription.sh` or `docker compose up -d --force-recreate clash-with-ui` to recreate the container and re-fetch. A plain `restart` does not re-fetch; the container must be **recreated**.
+
+6. (Optional) Scheduled subscription update
+
+Run `./refresh-subscription.sh` on a schedule (cron on Linux/WSL/Git Bash, or Windows Task Scheduler with Git Bash).
 
 ## Dependencies
 
