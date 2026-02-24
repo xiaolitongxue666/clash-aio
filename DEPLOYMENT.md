@@ -294,6 +294,21 @@ curl --proxy http://localhost:7891 http://httpbin.org/ip
 unset http_proxy https_proxy all_proxy
 ```
 
+### 7.4 命令行脚本（可选）
+
+项目根目录下提供纯 Bash 脚本（依赖 curl，无 jq/Python），可在本机或 SSH 到服务器后使用（需将脚本与 .env 放到同一目录，并确保能访问 Clash API 端口）：
+
+| 脚本 | 说明 |
+|------|------|
+| `run-and-verify.sh` | 检查 .env、启动 compose、端口冲突时自动选用 7891–7899 |
+| `test-proxy.sh [端口]` | 测试宿主机代理是否生效（默认 7890） |
+| `list-proxy-delay.sh [端口] [数量]` | 列出节点及延迟，数量 0 表示全部 |
+| `select-proxy.sh [端口] [数量]` | 按序号选择并切换当前代理节点 |
+| `refresh-subscription.sh` | 从 subconverter 拉取新配置并重载 Clash（不断连） |
+| `update-subscription.sh` | 强制重建容器以重新拉取订阅（兜底） |
+
+详细用法见 [README-zh.md](README-zh.md)。
+
 ---
 
 ## 八、端口说明
