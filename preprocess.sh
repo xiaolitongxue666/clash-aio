@@ -65,6 +65,27 @@ if [ ! -f /root/.config/clash/config.yaml ]; then
         RETRY=$((RETRY + 1))
         sleep 2
     done
+    # 若订阅下载失败，生成最小 config 并开启 allow-lan，供同栈 rsshub 等通过 0.0.0.0:7890 使用代理
+    if [ ! -f /root/.config/clash/config.yaml ] || [ ! -s /root/.config/clash/config.yaml ]; then
+        mkdir -p /root/.config/clash
+        cat > /root/.config/clash/config.yaml << 'EOF'
+allow-lan: true
+mixed-port: 7890
+mode: rule
+proxies: []
+proxy-groups: []
+rules: []
+EOF
+    fi
+fi
+
+# Allow other containers (e.g. rsshub) to use this proxy: listen on 0.0.0.0 instead of 127.0.0.1
+if [ -f /root/.config/clash/config.yaml ]; then
+    if grep -q 'allow-lan:' /root/.config/clash/config.yaml; then
+        sed -i 's/allow-lan: false/allow-lan: true/' /root/.config/clash/config.yaml
+    else
+        sed -i '1i allow-lan: true' /root/.config/clash/config.yaml
+    fi
 fi
 
 # Switch to the container command
