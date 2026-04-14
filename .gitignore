@@ -1,6 +1,30 @@
-.DS_Store
+# --- 敏感与本地环境（勿提交订阅、密钥）---
 .env
-.env.bak
+.env.*
+!.env.example
+.envrc
+
+# sed/编辑器备份（可能含与 .env 相同内容）
+*.bak
+*~
+*.swp
+*.swo
+
+# 常见密钥/证书文件名（若放在仓库根目录）
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa
+id_rsa.pub
+*.keystore
+
+# --- 运行产物 ---
+*.log
 __pycache__/
 *.pyc
 *.pyo
+
+# --- 系统文件 ---
+.DS_Store
+Thumbs.db

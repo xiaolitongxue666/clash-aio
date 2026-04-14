@@ -7,7 +7,7 @@ services:
       - ./subconverter/all_base.tpl:/base/base/all_base.tpl:Z
       - ./subconverter/pref.toml:/base/pref.toml:Z
     ports:
-      - "25500:25500"
+      - "${SUBCONVERTER_HOST_PORT:-25500}:25500"
 
   clash-with-ui:
     image: localhost/clash-with-ui:latest
@@ -17,6 +17,6 @@ services:
     env_file:
       - .env
     ports:
-      - "7891:7890"
-      - "9099:9090"
+      - "${ALL_PROXY_PORT:-7891}:7890"
+      - "${CONTROL_PANEL_PORT:-9099}:9090"
 

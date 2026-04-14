@@ -1,0 +1,3 @@
+# Avoid CRLF in shell scripts copied into Linux images (breaks shebang / ENTRYPOINT)
+*.sh text eol=lf
+*.inc.sh text eol=lf

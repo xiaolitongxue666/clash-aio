@@ -1,27 +1,17 @@
 #!/usr/bin/env bash
+# clash-aio：检查 .env、启动 Docker Compose 栈、就绪与代理验证（日常推荐）
+# 用法：在项目目录执行 ./clash-compose-up-verify.sh
+# 流程：source clash-env.inc.sh → 校验 RAW_SUB_URL → clash_require_env_ports_free_for_compose_up
+# （ALL_PROXY_PORT / CONTROL_PANEL_PORT / SUBCONVERTER_HOST_PORT 在宿主机被占用且非本栈映射则醒目退出，不自动改 .env）→ compose up -d → 轮询 /version 与代理探测。
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
+# shellcheck disable=SC1091
+. "${SCRIPT_DIR}/clash-env.inc.sh"
 
-# 检测宿主机端口是否已被占用（避免与宿主机 proxy 如 localhost:7890 冲突）
-port_in_use() {
-  local port=$1
-  if bash -c "echo >/dev/tcp/127.0.0.1/$port" 2>/dev/null; then
-    return 0
-  fi
-  if command -v netstat >/dev/null 2>&1; then
-    netstat -an 2>/dev/null | grep -qE "[.:]${port}[^0-9].*LISTEN" && return 0
-  fi
-  return 1
-}
-
-PROXY_PORT=7890
-PANEL_PORT=9090
-if [ -f .env ]; then
-  val=$(grep -E '^ALL_PROXY_PORT=' .env 2>/dev/null | cut -d= -f2); [ -n "$val" ] && PROXY_PORT="$val"
-  val=$(grep -E '^CONTROL_PANEL_PORT=' .env 2>/dev/null | cut -d= -f2); [ -n "$val" ] && PANEL_PORT="$val"
-fi
+PROXY_PORT="$ALL_PROXY_PORT"
+PANEL_PORT="$CONTROL_PANEL_PORT"
 
 if [ ! -f .env ]; then
   cp .env.example .env
@@ -43,31 +33,8 @@ else
   exit 1
 fi
 
-# 若宿主机代理端口已被占用，自动选用空闲端口并写回 .env
-NEED_RESTART=0
-if port_in_use "${PROXY_PORT}"; then
-  echo "检测到宿主机端口 ${PROXY_PORT} 已被占用（如宿主机 proxy），正在寻找空闲端口..."
-  for p in 7891 7892 7893 7894 7895 7896 7897 7898 7899; do
-    if ! port_in_use "$p"; then
-      echo "使用端口 ${p} 作为容器代理端口，已更新 .env"
-      if sed -i.bak "s/^ALL_PROXY_PORT=.*/ALL_PROXY_PORT=${p}/" .env 2>/dev/null || \
-         sed -i.bak "s/^ALL_PROXY_PORT=.*/ALL_PROXY_PORT=${p}/" .env; then
-        PROXY_PORT=$p
-        NEED_RESTART=1
-        break
-      fi
-    fi
-  done
-  if [ "$NEED_RESTART" -eq 0 ]; then
-    echo "未找到 7891–7899 范围内的空闲端口，请手动在 .env 中设置 ALL_PROXY_PORT 后重试。"
-    exit 1
-  fi
-fi
-
-if [ "$NEED_RESTART" -eq 1 ]; then
-  echo "正在重启容器以应用新端口..."
-  $COMPOSE_CMD down 2>/dev/null || true
-fi
+# 与 .env 冲突的宿主机端口：醒目报错并退出（若已是本栈 docker 映射则放行）
+clash_require_env_ports_free_for_compose_up
 
 echo "正在启动容器..."
 $COMPOSE_CMD up -d
@@ -77,8 +44,9 @@ MAX_WAIT=90
 waited=0
 while [ $waited -lt $MAX_WAIT ]; do
   if docker inspect -f '{{.State.Running}}' clash-with-ui 2>/dev/null | grep -q 'true'; then
-    code=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 2 "http://127.0.0.1:${PANEL_PORT}" 2>/dev/null || true)
-    if [ "$code" = "200" ] || [ "$code" = "301" ] || [ "$code" = "302" ]; then
+    # Clash external-controller 根路径常非 200；用 REST /version 判断控制面就绪
+    code=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 2 "http://127.0.0.1:${PANEL_PORT}/version" 2>/dev/null || true)
+    if [ "$code" = "200" ] || [ "$code" = "401" ]; then
       break
     fi
   fi

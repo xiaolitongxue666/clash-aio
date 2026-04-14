@@ -1,0 +1,8 @@
+---
+description: 本仓库架构与修改入口以根目录 AGENTS.md 为准
+alwaysApply: true
+---
+
+# 项目上下文
+
+在回答与本仓库相关的问题或修改代码前，先阅读仓库根目录的 [AGENTS.md](../../AGENTS.md)：其中说明了 Clash / subconverter / YACD 的职责划分、数据流、环境变量与应修改的文件路径。

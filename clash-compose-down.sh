@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ---------------------------------------------------------------------------
-# clash-aio 一键停止
-# 用法：在 clash-aio 目录执行 ./stop.sh
+# clash-aio：停止并移除本仓库 docker-compose.yaml 定义的栈（docker compose down）
+# 用法：在 clash-aio 目录执行 ./clash-compose-down.sh
 # ---------------------------------------------------------------------------
 
 set -e

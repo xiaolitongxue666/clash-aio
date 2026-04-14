@@ -300,12 +300,12 @@ unset http_proxy https_proxy all_proxy
 
 | 脚本 | 说明 |
 |------|------|
-| `run-and-verify.sh` | 检查 .env、启动 compose、端口冲突时自动选用 7891–7899 |
-| `test-proxy.sh [端口]` | 测试宿主机代理是否生效（默认 7890） |
-| `list-proxy-delay.sh [端口] [数量]` | 列出节点及延迟，数量 0 表示全部 |
-| `select-proxy.sh [端口] [数量]` | 按序号选择并切换当前代理节点 |
-| `refresh-subscription.sh` | 从 subconverter 拉取新配置并重载 Clash（不断连） |
-| `update-subscription.sh` | 强制重建容器以重新拉取订阅（兜底） |
+| `clash-compose-up-verify.sh` | 检查 .env、启动前校验宿主机端口占用（冲突则退出） |
+| `clash-verify-mixed-proxy-portmap.sh [端口]` | 经映射端口验证容器 Clash mixed（默认读 `.env` 的 `ALL_PROXY_PORT`） |
+| `clash-list-proxies-latency.sh [端口] [数量]` | 列出节点及延迟，数量 0 表示全部 |
+| `clash-select-proxy-by-index.sh [端口] [数量]` | 按序号选择并切换当前代理节点 |
+| `clash-subscription-hot-reload.sh` | 从 subconverter 拉取新配置并重载 Clash（不断连） |
+| `clash-subscription-rebuild.sh` | 强制重建容器以重新拉取订阅（兜底） |
 
 详细用法见 [README-zh.md](README-zh.md)。
 

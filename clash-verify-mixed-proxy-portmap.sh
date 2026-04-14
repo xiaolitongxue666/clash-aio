@@ -1,17 +1,30 @@
 #!/usr/bin/env bash
-# 在宿主机上测试容器内 Clash 代理是否可用
+# 在宿主机上经 Docker 映射端口测试「容器内 Clash」混合代理是否可用
+# （流量: 宿主机 127.0.0.1:宿主机端口 -> 容器 mixed-port 7890 -> 外网）
 # 用法:
-#   ./test-proxy.sh           # 默认端口 7890
-#   ./test-proxy.sh 7892      # 指定端口
-#   PROXY_PORT=7892 ./test-proxy.sh
-# 可选环境变量: PROXY_PORT, TEST_URL(默认 https://ipinfo.io)
+#   ./clash-verify-mixed-proxy-portmap.sh           # 从 .env / .env.example 读 ALL_PROXY_PORT（见 clash-env.inc.sh）
+#   ./clash-verify-mixed-proxy-portmap.sh 7892      # 指定宿主机映射端口
+#   PROXY_PORT=7892 ./clash-verify-mixed-proxy-portmap.sh  # 环境变量覆盖 .env
+# 可选环境变量: PROXY_PORT, TEST_URL（默认 http://ip-api.com/json/，免密钥）
 
-PROXY_PORT="${PROXY_PORT:-7890}"
-[ -n "$1" ] && [[ "$1" =~ ^[0-9]+$ ]] && PROXY_PORT="$1"
+set -e
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$SCRIPT_DIR"
+# shellcheck disable=SC1091
+. "${SCRIPT_DIR}/clash-env.inc.sh"
+
+if [ -n "$1" ] && [[ "$1" =~ ^[0-9]+$ ]]; then
+  PROXY_PORT="$1"
+elif [ -n "${PROXY_PORT:-}" ]; then
+  :
+else
+  PROXY_PORT="$ALL_PROXY_PORT"
+fi
 
 PROXY_URL="http://127.0.0.1:${PROXY_PORT}"
-TEST_URL="${TEST_URL:-https://ipinfo.io}"
+TEST_URL="${TEST_URL:-http://ip-api.com/json/}"
 
+echo "宿主机映射端口 -> 容器 Clash mixed: ${PROXY_PORT} -> 7890（与 docker-compose 中 ALL_PROXY_PORT 一致）"
 echo "代理地址: ${PROXY_URL}"
 echo "检测端口: ${PROXY_PORT}"
 echo "请求: ${TEST_URL}"
@@ -35,7 +48,7 @@ echo "$body"
 echo "---"
 
 if [ "$code" = "200" ]; then
-  echo "结果: 成功  代理可用，可将系统或应用代理设为 127.0.0.1:${PROXY_PORT}"
+  echo "结果: 成功  容器内 Clash 经映射端口工作正常；系统/应用可设 HTTP 代理为 127.0.0.1:${PROXY_PORT}"
   exit 0
 else
   echo "结果: 失败  (HTTP ${code} 或请求超时)"

@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
-# 列出当前容器中 Clash 订阅的代理节点并测延迟（ms）
-# 用法: ./list-proxy-delay.sh [控制面板端口] [仅测前 N 个节点，默认 20，0=全部]
+# 列出当前容器中 Clash 订阅的代理节点并测延迟（ms）；REST 基址端口来自 clash-env.inc.sh（.env / .env.example）。
+# 用法: ./clash-list-proxies-latency.sh [控制面板端口（默认同 .env/.env.example）] [仅测前 N 个节点，默认 20，0=全部]
 # 依赖: curl，纯 Bash 实现
 
 set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
+# shellcheck disable=SC1091
+. "${SCRIPT_DIR}/clash-env.inc.sh"
 
 # 纯 Bash URL 编码
 url_encode() {
@@ -16,10 +18,6 @@ url_encode() {
     -e 's/@/%40/g' -e 's/\[/%5B/g' -e 's/\]/%5D/g'
 }
 
-CONTROL_PANEL_PORT=9090
-if [ -f .env ]; then
-  val=$(grep -E '^CONTROL_PANEL_PORT=' .env 2>/dev/null | cut -d= -f2); [ -n "$val" ] && CONTROL_PANEL_PORT="$val"
-fi
 [ -n "$1" ] && [[ "$1" =~ ^[0-9]+$ ]] && CONTROL_PANEL_PORT="$1"
 if [ -n "$2" ] && [[ "$2" =~ ^[0-9]+$ ]]; then
   LIMIT=$2

@@ -7,7 +7,7 @@ services:
       - ./subconverter/all_base.tpl:/base/base/all_base.tpl
       - ./subconverter/pref.toml:/base/pref.toml
     ports:
-      - "25500:25500"
+      - "${SUBCONVERTER_HOST_PORT:-25500}:25500"
 
   clash-with-ui:
     build: .

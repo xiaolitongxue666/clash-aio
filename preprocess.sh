@@ -1,4 +1,7 @@
 #!/bin/sh
+# clash-with-ui 容器入口：无本地 config 时经 subconverter（容器内 :25500）拉取 YAML；
+# 失败则写入含 external-controller / external-ui 的最小配置，保证 9090 控制面与 YACD；
+# 最后 exec /clash -ext-ui。宿主机构建时由 Dockerfile 去掉 CRLF，避免 Windows 检出导致 ENTRYPOINT 失败。
 
 if [ ! -f /root/.config/clash/config.yaml ]; then
     # Check if RAW_SUB_URL is already URL encoded
@@ -72,6 +75,8 @@ if [ ! -f /root/.config/clash/config.yaml ]; then
 allow-lan: true
 mixed-port: 7890
 mode: rule
+external-controller: :9090
+external-ui: /ui/public
 proxies: []
 proxy-groups: []
 rules: []

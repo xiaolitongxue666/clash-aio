@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# 手动更新订阅（兜底）：重建 clash-with-ui 容器，使 preprocess 重新从 RAW_SUB_URL 拉取 config。
-# 日常推荐优先使用 ./refresh-subscription.sh（无重启、不断连）。
-# 用法: ./update-subscription.sh
+# 手动更新订阅（兜底）：docker compose --force-recreate clash-with-ui，使 preprocess 重新从 RAW_SUB_URL 拉取 config。
+# 不做宿主机端口预检；日常推荐优先使用 ./clash-subscription-hot-reload.sh（无重启、不断连）。
+# 用法: ./clash-subscription-rebuild.sh
 
 set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"

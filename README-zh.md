@@ -27,7 +27,7 @@ git clone https://github.com/pandazki/clash-aio.git
 # git clone https://ghproxy.com/https://github.com/pandazki/clash-aio.git
 ```
 
-1. 在 .env 文件中设置 Clash 订阅 URL或者直接把 Clash 文件路径映射进容器
+1. 在 `.env` 中设置 Clash 订阅 URL，并按需设置 `ALL_PROXY_PORT`、`CONTROL_PANEL_PORT`、`SUBCONVERTER_HOST_PORT`（见 `.env.example`）；也可把 Clash 配置文件映射进容器
 
 ```bash
 cd clash-aio
@@ -50,40 +50,63 @@ cp .env.example .env
 docker compose up -d
 ```
 
-Windows 用户（Git Bash）可在项目目录下运行 `./run-and-verify.sh` 完成 .env 检查、启动与验证。
+与上述等价、便于记忆的**脚本方式**（均在项目根目录执行）：
+
+| 操作 | 脚本 | 说明 |
+|------|------|------|
+| 启动栈 | `./clash-compose-up.sh` | `docker compose down` 后 `up -d`；**`up` 前**执行 `clash_require_env_ports_free_for_compose_up`（`clash-env.inc.sh`）；可选参数先写回 `ALL_PROXY_PORT` |
+| 停止栈 | `./clash-compose-down.sh` | 对 `docker-compose.yaml` 执行 `docker compose down` |
+| 启动并验证 | `./clash-compose-up-verify.sh` | 检查 `.env`、**同上宿主机三端口预检**、`compose up`、探测 `/version` 与代理（**推荐**，尤其 Windows Git Bash） |
+
+Windows 用户（Git Bash）可在项目目录下运行 `./clash-compose-up-verify.sh` 完成 `.env` 检查、启动与验证。启动前会检查 `.env` 中的 `ALL_PROXY_PORT`、`CONTROL_PANEL_PORT`、`SUBCONVERTER_HOST_PORT` 在宿主机是否被占用；若被其它程序占用则醒目报错并退出（已是本 compose 映射的端口则放行）。
 
 3. (可选) 管理代理
 
-- **Web 控制面板**：`http://[服务器IP]:9090/ui?hostname=[服务器IP]`
+- **Web 控制面板**：`http://[服务器IP]:<CONTROL_PANEL_PORT>/ui?hostname=...`（端口见 `.env`，`.env.example` 默认为 9090）
 - **命令行脚本**（项目目录下执行，依赖 curl，纯 Bash 无 jq）：
-  - **列出节点与延迟**：`./list-proxy-delay.sh [控制面板端口] [数量]`  
-    例：`./list-proxy-delay.sh 9090 20` 测前 20 个节点，第二参数为 0 表示全部。
-  - **按序号选择节点**：`./select-proxy.sh [控制面板端口] [数量]`  
-    会列出带序号的节点与延迟，输入 1～N 切换，输入 0 或 q 取消。  
-    例：`./select-proxy.sh 9090 10`
-  - **测试宿主机代理**：`./test-proxy.sh [端口]`（默认 7890），请求 ipinfo.io 验证代理是否生效。
+  - **列出节点与延迟**：`./clash-list-proxies-latency.sh [控制面板端口] [数量]` — 省略第一参数时控制面端口来自 `.env` / `.env.example`；与 `.env` 不一致时再显式传入。  
+    例：`./clash-list-proxies-latency.sh` 或 `./clash-list-proxies-latency.sh 9095 20`；第二参数为 0 表示测全部节点。
+  - **按序号选择节点**：`./clash-select-proxy-by-index.sh [控制面板端口] [数量]` — 端口规则同上。  
+    例：`./clash-select-proxy-by-index.sh` 或 `./clash-select-proxy-by-index.sh 9095 10`
+  - **验证端口映射下的混合代理**：`./clash-verify-mixed-proxy-portmap.sh [宿主机端口]`；无参数时 `ALL_PROXY_PORT` 来自 `.env` / `.env.example`（`clash-env.inc.sh`）。经 Docker 映射进入容器内 Clash mixed（容器内固定 7890），默认 URL 为 `http://ip-api.com/json/`。
 
 4. (可选) 设置代理环境变量
 
 ```bash
-export https_proxy=http://[服务器IP]:7890
-export http_proxy=http://[服务器IP]:7890
-export all_proxy=socks5://[服务器IP]:7890
+# <ALL_PROXY_PORT> 替换为 .env 中宿主机映射的混合代理端口
+export https_proxy=http://[服务器IP]:<ALL_PROXY_PORT>
+export http_proxy=http://[服务器IP]:<ALL_PROXY_PORT>
+export all_proxy=socks5://[服务器IP]:<ALL_PROXY_PORT>
 ```
 
 5. (可选) 手动更新订阅
 
 本方案只在容器**首次启动且无 config** 时拉取订阅，之后不会自动更新。
 
-- **推荐（无重启）**：在项目目录运行 `./refresh-subscription.sh`，从 subconverter 拉取新 config 并写入容器后调用 Clash API 重载，不断连。
-- **兜底**：若 refresh 失败（如 API 不可用），可运行 `./update-subscription.sh` 或执行 `docker compose up -d --force-recreate clash-with-ui` 重建容器以重新拉取。注意：仅 `restart` 不会重新拉取，必须**重建**容器。
+- **推荐（无重启）**：在项目目录运行 `./clash-subscription-hot-reload.sh`，从 subconverter 拉取新 config 并写入容器后调用 Clash API 重载，不断连。
+- **兜底**：若热重载失败（如 API 不可用），可运行 `./clash-subscription-rebuild.sh` 或执行 `docker compose up -d --force-recreate clash-with-ui` 重建容器以重新拉取。注意：仅 `restart` 不会重新拉取，必须**重建**容器。
 
 6. (可选) 定时更新订阅
 
-复用上述「推荐」方式，由系统定时执行 `./refresh-subscription.sh` 即可。
+复用上述「推荐」方式，由系统定时执行 `./clash-subscription-hot-reload.sh` 即可。
 
 - **Linux / WSL / Git Bash**：用 cron。示例（每天 4 点执行）：将 `cron.example` 中的一行加入 `crontab -e`，或放入 `/etc/cron.d/`，并把路径改为你的项目目录。
-- **Windows**：用「任务计划程序」创建基本任务，触发器选「每天」或「每 N 小时」，操作启动程序为 Git Bash 的 `bash.exe`，参数为 `-c "cd /path/to/clash-aio && ./refresh-subscription.sh"`（路径按实际修改）。
+- **Windows**：用「任务计划程序」创建基本任务，触发器选「每天」或「每 N 小时」，操作启动程序为 Git Bash 的 `bash.exe`，参数为 `-c "cd /path/to/clash-aio && ./clash-subscription-hot-reload.sh"`（路径按实际修改）。
+
+## 脚本一览
+
+| 脚本 | 用途 | 典型命令 |
+|------|------|----------|
+| `clash-compose-up.sh` | 启动栈；`up` 前宿主机端口预检 | `./clash-compose-up.sh` |
+| `clash-compose-down.sh` | 停止并移除栈 | `./clash-compose-down.sh` |
+| `clash-compose-up-verify.sh` | 启动 + `.env` / 宿主机端口预检 / 就绪 / 代理验证 | `./clash-compose-up-verify.sh` |
+| `clash-verify-mixed-proxy-portmap.sh` | 经 Compose 端口映射验证容器 Clash mixed | `./clash-verify-mixed-proxy-portmap.sh` |
+| `clash-list-proxies-latency.sh` | 列出节点与延迟 | `./clash-list-proxies-latency.sh`（控制面端口来自 `.env`） |
+| `clash-select-proxy-by-index.sh` | 按序号切换节点 | `./clash-select-proxy-by-index.sh` |
+| `clash-subscription-hot-reload.sh` | 订阅热重载（无容器重建） | `./clash-subscription-hot-reload.sh` |
+| `clash-subscription-rebuild.sh` | 重建 Clash 容器以重拉订阅 | `./clash-subscription-rebuild.sh` |
+
+另有 `deploy-server.sh`、`fix-images.sh`（部署与镜像修复）；`clash-env.inc.sh` 供各脚本 `source` 统一解析端口，勿单独执行。容器内入口为 `preprocess.sh`（勿改名）。
 
 ## 依赖
 
