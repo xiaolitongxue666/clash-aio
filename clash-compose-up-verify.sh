@@ -37,7 +37,33 @@ fi
 clash_require_env_ports_free_for_compose_up
 
 echo "正在启动容器..."
-$COMPOSE_CMD up -d
+compose_project_name="${COMPOSE_PROJECT_NAME:-$(basename "$SCRIPT_DIR")}"
+compose_clash_image_tag="${compose_project_name}-clash-with-ui:latest"
+prefer_no_build=0
+
+if docker image inspect "$compose_clash_image_tag" >/dev/null 2>&1; then
+  prefer_no_build=1
+else
+  preloaded_clash_image_tags=(
+    "clash-aio-clash-with-ui:latest"
+    "clash-aio_clash-with-ui:latest"
+    "clash-with-ui:latest"
+  )
+  for preloaded_clash_image_tag in "${preloaded_clash_image_tags[@]}"; do
+    if docker image inspect "$preloaded_clash_image_tag" >/dev/null 2>&1; then
+      docker tag "$preloaded_clash_image_tag" "$compose_clash_image_tag" >/dev/null 2>&1 || true
+      prefer_no_build=1
+      break
+    fi
+  done
+fi
+
+if [ "$prefer_no_build" -eq 1 ]; then
+  echo "检测到本地 clash-with-ui 镜像，使用 --no-build 直接启动。"
+  $COMPOSE_CMD up -d --no-build
+else
+  $COMPOSE_CMD up -d
+fi
 
 echo "等待服务就绪..."
 MAX_WAIT=90
