@@ -22,7 +22,25 @@
 ./clash-aio-local.sh shell         # 进入 clash-with-ui 容器（优先 sh，失败则 bash）
 ```
 
+**Docker 引擎前置（[`clash-docker-prereq.inc.sh`](clash-docker-prereq.inc.sh)）**
+
+- [`clash-aio-local.sh`](clash-aio-local.sh)（`pull` / `up` / `all` / `shell`）、[`clash-compose-up-verify.sh`](clash-compose-up-verify.sh) 在调用 compose 前会执行 **`clash_ensure_docker_engine`**。
+- **Linux（Ubuntu / Debian）**：若本机尚无可用的 `docker compose`（或仅有旧版 `docker-compose` 且不满足检测逻辑），在 **root** 或 **免密 sudo** 下自动通过 apt 安装 Docker CE 与 **compose 插件**；Docker CE 软件源与回退策略与 `vps_construct_scripts` 中 `vps_docker_ce_apt_urls_for_os` / `vps_install_docker_write_apt_sources` 一致，由环境变量 **`DOCKER_CE_APT_MIRROR=auto|official|ustc|aliyun`**（默认 `auto`）控制。
+- **macOS / Windows（Git Bash）**：不执行 apt 安装；若未安装 **Docker Desktop** 或未启动引擎，脚本会报错退出并提示先安装/启动。
+- **跳过自动保障**（CI、或自行管理 Docker）：`CLASH_SKIP_DOCKER_ENSURE=1`。
+- **其它可调变量**（与 vps bootstrap 语义对齐，详见 `clash-docker-prereq.inc.sh` 头部注释）：`DOCKER_ROOT_MIN_AVAIL_MIB`、`DOCKER_HUB_MIRROR_BASELINE`、`DOCKER_REGISTRY_MIRRORS_CSV`、`DOCKER_REGISTRY_PROBE`、`CLASH_CHSRC_DOCKER_REGISTRY`。
+
+**远端 VPS / QEMU 访客机（[`vps-clash-aio-bootstrap.sh`](vps-clash-aio-bootstrap.sh)）**
+
+- 当 zip 内 `.env` 中 **`VPS_DEPLOY_CONTAINER_ENGINE=docker`** 时，bootstrap 在解压项目到 `DEPLOY_DIR` 之前会同样调用 **`clash_ensure_docker_engine`**（与 `vps-clash-aio-bootstrap.sh` 同目录的 **`clash-docker-prereq.inc.sh`** 由 [`deploy-remote.sh`](deploy-remote.sh) 一并 scp；亦打入 `dist/clash-aio-bundle.zip`）。
+- **`VPS_DEPLOY_CONTAINER_ENGINE=podman`** 时仍按原逻辑要求远端已安装 podman（本仓库不自动安装 podman）。
+
 **开发挂载**：将 [`docker-compose.override.example.yaml`](docker-compose.override.example.yaml) 复制为同目录下的 `docker-compose.override.yaml`（该文件名已在 [`.gitignore`](.gitignore)），可把仓库内 [`preprocess.sh`](preprocess.sh) 绑定到容器内 `/usr/bin/preprocess.sh`，改脚本后重启容器即可验证，无需每次 `build`。
+
+### 本机两终端：一键启动与映射端口代理验证
+
+1. **终端 A**（项目根，已配置 `.env` 含 `RAW_SUB_URL`）：`./clash-compose-up-verify.sh` 或 `./clash-aio-local.sh up`。
+2. **终端 B**：`./clash-verify-mixed-proxy-portmap.sh`（默认 `TEST_URL` 为 `http://ip-api.com/json/`；等价于对 `ip-api.com` 走 `http://127.0.0.1:${ALL_PROXY_PORT}` 的 HTTP 代理）。
 
 ## 一点五、一键上 VPS（`deploy-remote.sh`）
 
@@ -33,11 +51,11 @@
 
 ```bash
 ./deploy-remote.sh pack    # 生成 dist/clash-aio-bundle.zip 与 dist/clash-aio-images.tar.gz
-./deploy-remote.sh upload  # 按 .env 中 VPS_DEPLOY_* 将产物与 vps-clash-aio-bootstrap.sh scp 到远端并做命令预检
+./deploy-remote.sh upload  # 按 .env 中 VPS_DEPLOY_* 将产物、vps-clash-aio-bootstrap.sh、clash-docker-prereq.inc.sh scp 到远端并做命令预检
 # 或一条命令: ./deploy-remote.sh all
 ```
 
-3. SSH 登录 VPS，进入 **`VPS_DEPLOY_REMOTE_DIR`** 所指目录（内含上述 zip、镜像包与 `vps-clash-aio-bootstrap.sh`），执行：
+3. SSH 登录 VPS，进入 **`VPS_DEPLOY_REMOTE_DIR`** 所指目录（内含上述 zip、镜像包、`vps-clash-aio-bootstrap.sh` 与 `clash-docker-prereq.inc.sh`），执行：
 
 ```bash
 sudo bash vps-clash-aio-bootstrap.sh .

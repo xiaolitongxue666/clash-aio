@@ -16,6 +16,8 @@ Clash 懒人全家桶是一个基于 Docker Compose 的 Clash 一键部署方案
 
 与 **vps_construct_scripts** QEMU 严格路径常用的离线包命名（`clash-aio-main.zip` + `clash-aio-images.tar`）和本仓库 **`deploy-remote.sh pack`** 产物（`dist/clash-aio-bundle.zip` + `dist/clash-aio-images.tar.gz`）是**两条线**，勿混为一种「真理」；衔接方式见 [DEPLOYMENT.md](DEPLOYMENT.md) 一点五节。
 
+**Docker 引擎**：`clash-docker-prereq.inc.sh` 会在本机一键与 `vps-clash-aio-bootstrap.sh`（`VPS_DEPLOY_CONTAINER_ENGINE=docker`）中按需检测/安装 Docker CE 与 compose 插件（Linux）；平台说明见 [DEPLOYMENT.md](DEPLOYMENT.md)「一点二五」下 Docker 前置段落。
+
 ## 功能
 
 - 基于 Clash 的 proxy-providers 自动更新订阅

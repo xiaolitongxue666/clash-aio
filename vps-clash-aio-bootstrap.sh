@@ -2,7 +2,8 @@
 # VPS 上一键：从上传目录解压项目 zip、导入镜像、启动 clash-aio（docker 或 podman 由部署目录 .env 决定）。
 # 用法：sudo bash vps-clash-aio-bootstrap.sh [STAGING_DIR]
 #   STAGING_DIR：含 clash-aio-bundle.zip 与 clash-aio-images.tar.gz 的目录，默认当前目录。
-# 依赖：unzip、tar、gunzip；以及 docker 或 podman（与 VPS_DEPLOY_CONTAINER_ENGINE 一致）。
+# 依赖：unzip、tar、gunzip；容器引擎为 docker 时由 clash-docker-prereq.inc.sh 按需安装/启动 Docker；
+# 为 podman 时远端须已安装 podman、podman-compose（与 VPS_DEPLOY_CONTAINER_ENGINE 一致）。
 
 set -euo pipefail
 
@@ -11,7 +12,8 @@ if [ "${EUID:-0}" -ne 0 ]; then
   exit 1
 fi
 
-SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
+BOOTSTRAP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_PATH="${BOOTSTRAP_DIR}/$(basename "${BASH_SOURCE[0]}")"
 STAGING_DIR="$(cd "${1:-.}" && pwd)"
 ZIP="${STAGING_DIR}/clash-aio-bundle.zip"
 IMG_TGZ="${STAGING_DIR}/clash-aio-images.tar.gz"
@@ -67,6 +69,16 @@ case "$ENGINE" in
     exit 1
     ;;
 esac
+
+if [ "$ENGINE" = "docker" ] && [ "${CLASH_SKIP_DOCKER_ENSURE:-0}" != "1" ]; then
+  if [ ! -f "${BOOTSTRAP_DIR}/clash-docker-prereq.inc.sh" ]; then
+    echo "错误：缺少 ${BOOTSTRAP_DIR}/clash-docker-prereq.inc.sh（请用新版 ./deploy-remote.sh upload 一并上传，或与 vps-clash-aio-bootstrap.sh 同目录放置该文件）。" >&2
+    exit 1
+  fi
+  # shellcheck disable=SC1091
+  . "${BOOTSTRAP_DIR}/clash-docker-prereq.inc.sh"
+  clash_ensure_docker_engine || exit 1
+fi
 
 command -v "$ENGINE" >/dev/null 2>&1 || {
   echo "错误：未找到容器命令: $ENGINE" >&2

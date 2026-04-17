@@ -130,6 +130,7 @@ cmd_pack() {
       preprocess.sh \
       clash-env.inc.sh \
       clash-compose-cmd.inc.sh \
+      clash-docker-prereq.inc.sh \
       clash-aio-local.sh \
       vps-clash-aio-bootstrap.sh \
       deploy-server.sh \
@@ -208,9 +209,10 @@ cmd_upload() {
       exit 1
     }
   else
+    # docker：Engine 可由 vps-clash-aio-bootstrap 内 clash-docker-prereq 自动安装，此处仅校验基础工具与 curl（apt 源拉 GPG 用）
     ssh "${ssh_opts[@]}" "${user}@${host}" \
-      'command -v unzip >/dev/null && command -v tar >/dev/null && command -v gunzip >/dev/null && command -v docker >/dev/null && (docker compose version >/dev/null 2>&1 || docker-compose version >/dev/null 2>&1)' || {
-      echo "错误：远端预检失败，请安装 unzip、tar、gzip、docker 与 compose 插件或 docker-compose。" >&2
+      'command -v unzip >/dev/null && command -v tar >/dev/null && command -v gunzip >/dev/null && command -v curl >/dev/null' || {
+      echo "错误：远端预检失败，请安装 unzip、tar、gzip、curl（Docker 将由 bootstrap 脚本按需安装）。" >&2
       exit 1
     }
   fi
@@ -220,6 +222,7 @@ cmd_upload() {
     "${DIST_DIR}/${BUNDLE_ZIP_NAME}" \
     "${DIST_DIR}/${IMAGES_TGZ_NAME}" \
     "${SCRIPT_DIR}/vps-clash-aio-bootstrap.sh" \
+    "${SCRIPT_DIR}/clash-docker-prereq.inc.sh" \
     "${user}@${host}:${remote}"
 
   echo "上传完成。SSH 登录后进入上传目录（与 VPS_DEPLOY_REMOTE_DIR 一致），执行:"

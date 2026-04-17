@@ -10,6 +10,9 @@ cd "$SCRIPT_DIR"
 
 # shellcheck disable=SC1091
 . "${SCRIPT_DIR}/clash-compose-cmd.inc.sh"
+# shellcheck disable=SC1091
+. "${SCRIPT_DIR}/clash-docker-prereq.inc.sh"
+clash_ensure_docker_engine || exit 1
 clash_compose_require || exit 1
 
 # shellcheck disable=SC1091

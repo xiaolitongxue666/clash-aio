@@ -15,6 +15,8 @@ cd "$SCRIPT_DIR"
 
 # shellcheck disable=SC1091
 . "${SCRIPT_DIR}/clash-compose-cmd.inc.sh"
+# shellcheck disable=SC1091
+. "${SCRIPT_DIR}/clash-docker-prereq.inc.sh"
 
 usage() {
   echo "用法: $0 pull | up [PROXY_PORT] | shell | all [PROXY_PORT]" >&2
@@ -22,6 +24,7 @@ usage() {
 }
 
 cmd_pull() {
+  clash_ensure_docker_engine || exit 1
   clash_compose_require || exit 1
   echo "正在 pull 镜像（compose pull）..."
   $COMPOSE_CMD -f "$COMPOSE_FILE" pull
@@ -33,6 +36,7 @@ cmd_pull() {
 cmd_up() {
   local proxy_port="${1:-}"
 
+  clash_ensure_docker_engine || exit 1
   clash_compose_require || exit 1
 
   if [ -n "$proxy_port" ]; then
@@ -68,6 +72,7 @@ cmd_up() {
 }
 
 cmd_shell() {
+  clash_ensure_docker_engine || exit 1
   clash_compose_require || exit 1
   $COMPOSE_CMD -f "$COMPOSE_FILE" exec -it clash-with-ui sh || \
     $COMPOSE_CMD -f "$COMPOSE_FILE" exec -it clash-with-ui bash
