@@ -4,6 +4,22 @@
 
 Lazy Clash is a one-click deployment solution for Clash based on Docker Compose. It can help you quickly set up a Clash proxy service with automatically updated subscriptions. —— by ChatGPT
 
+## Workspace context (multi-repo layout)
+
+**What this repo is (scope)**: A **Docker Compose** stack for **Clash + subconverter + web UI (YACD)** with a clear host port contract (`ALL_PROXY_PORT`, `CONTROL_PANEL_PORT`, `SUBCONVERTER_HOST_PORT`), local helpers (`clash-aio-local.sh`, `clash-compose-up-verify.sh`, `clash-verify-mixed-proxy-portmap.sh`, …), and an optional **remote bundle** path: `deploy-remote.sh` (build/save images + zip) → upload → `vps-clash-aio-bootstrap.sh` on the target (install/load/start/verify). Linux targets may pull Docker CE via `clash-docker-prereq.inc.sh` (see [DEPLOYMENT.md](DEPLOYMENT.md)).
+
+**Where it sits in a typical multi-repo workspace**: **Middle layer (edge proxy / subscription plane)** on top of **any SSH-reachable Linux** (a local QEMU VM, a NAS, or a VPS). It does **not** embed `vps_construct_scripts`; it may run on a host that was (or was not) prepared by those scripts.
+
+**Related repos (integration, not submodules)**: Use **`qemu_test_vm`** when you need a disposable Ubuntu for dry-runs. Coordinate UFW/Tailscale/Docker policies with whatever ran on the host before `docker compose up`. There is **no** workspace-root orchestrator; you wire SSH targets and order manually.
+
+### 工作区中的定位（中文摘要）
+
+**本仓库职责**：在目标 Linux 上以容器方式提供 **Clash 代理平面**（订阅、subconverter、控制面与 Web UI），支持本机 Compose 与 **远端打包上传 + 目标机一键 bootstrap** 两种交付路径。
+
+**层级**：**中层（跑在目标机上的服务）**；依赖可 SSH 的主机及（多数场景下）Docker，**不依赖** `vps_construct_scripts` 源码，但常与该机已由 vps 脚本配置过的 Docker/UFW 等共存。
+
+**与相邻仓库**：底层可用 **`qemu_test_vm`** 提供测试用 Ubuntu；同机可再运行 **`vps_construct_scripts`** 做系统基线——三者独立 Git 仓库，由执行顺序衔接。部署边界与产物命名见 [DEPLOYMENT.md](DEPLOYMENT.md)；中文说明见 [README-zh.md](README-zh.md)。
+
 Personal usage scenarios:
 
 - Quick and painless deployment on router/NAS devices

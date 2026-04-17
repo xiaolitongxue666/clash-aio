@@ -10,6 +10,16 @@ Clash 懒人全家桶是一个基于 Docker Compose 的 Clash 一键部署方案
 - 路由器/Nas 无痛快速部署
 - 服务器上快速部署临时使用，用完即删
 
+## 工作区中的层级与相关仓库
+
+与同目录 [`README.md`](README.md) 中 **「Workspace context」** / **「工作区中的定位（中文摘要）」** 一致，以下为中文展开。
+
+**本仓库职责**：在目标 Linux 上以 **Docker Compose** 提供 **Clash + subconverter + Web 控制台（YACD）**；约定宿主机端口契约（`ALL_PROXY_PORT`、`CONTROL_PANEL_PORT`、`SUBCONVERTER_HOST_PORT`），并提供本机脚本（如 `clash-aio-local.sh`、`clash-compose-up-verify.sh`、`clash-verify-mixed-proxy-portmap.sh` 等）及可选 **远端交付**：`deploy-remote.sh`（构建并导出镜像 + 打包工程）→ 上传 → 目标机执行 `vps-clash-aio-bootstrap.sh`（按需安装 Docker、`docker load`、`compose up` 与连通性校验）。Linux 上 Docker CE 相关逻辑见 `clash-docker-prereq.inc.sh`，部署细节见 [DEPLOYMENT.md](DEPLOYMENT.md)。
+
+**在工作区整体层级中的位置**：处于 **中层（跑在目标机上的边缘代理 / 订阅编排服务）**；前提是一台 **可 SSH** 的主机，且多数场景需要 **Docker**。**不依赖** `vps_construct_scripts` 源码；若目标机曾用 vps 脚本做过基线，需自行协调 UFW、Tailscale、已占用端口等与 `docker compose up` 的关系。
+
+**与相邻仓库的衔接（非子模块）**：底层可用 **`qemu_test_vm`** 在本机拉起可丢弃的 **Ubuntu 访客机** 做联调；同机还可运行 **`vps_construct_scripts`** 做系统初始化——三者为 **独立 Git 仓库**，工作区根目录 **无** 总控编排脚本，由你自行决定执行顺序与 SSH 目标。英文版说明见 [`README.md`](README.md)。
+
 ## 独立前置代理平面（与 vps_construct 等消费者）
 
 本仓库可作为与业务/装机**解耦**的**出站代理平面**：对外只承诺 **`.env` 中的端口契约**（`ALL_PROXY_PORT`、`CONTROL_PANEL_PORT`、`SUBCONVERTER_HOST_PORT`）与启动前**宿主机端口预检**（见 `clash-env.inc.sh`）；不替消费者自动改端口。消费者可选设置 `HTTP_PROXY` / `HTTPS_PROXY` / `ALL_PROXY` 指向本栈 mixed 口。**生命周期**在本仓库内完成（`clash-aio-local.sh`、`deploy-remote.sh`、`vps-clash-aio-bootstrap.sh` 等），**不必**作为其它仓库的子模块。
