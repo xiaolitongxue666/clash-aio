@@ -184,8 +184,8 @@ cmd_upload() {
       ;;
   esac
 
-  [ -f "${DIST_DIR}/${BUNDLE_ZIP_NAME}" ] && [ -f "${DIST_DIR}/${IMAGES_TGZ_NAME}" ] || {
-    echo "错误：请先执行 $0 pack（缺少 dist 下产物）。" >&2
+  [ -s "${DIST_DIR}/${BUNDLE_ZIP_NAME}" ] && [ -s "${DIST_DIR}/${IMAGES_TGZ_NAME}" ] || {
+    echo "错误：请先执行 $0 pack（缺少或空的 dist 产物：${BUNDLE_ZIP_NAME} / ${IMAGES_TGZ_NAME}）。" >&2
     exit 1
   }
 
@@ -224,6 +224,20 @@ cmd_upload() {
     "${SCRIPT_DIR}/vps-clash-aio-bootstrap.sh" \
     "${SCRIPT_DIR}/clash-docker-prereq.inc.sh" \
     "${user}@${host}:${remote}"
+
+  echo "校验远端产物并统一脚本换行符..."
+  ssh "${ssh_opts[@]}" "${user}@${host}" "
+    set -euo pipefail
+    cd ${remote}
+    test -s \"${BUNDLE_ZIP_NAME}\"
+    test -s \"${IMAGES_TGZ_NAME}\"
+    test -s \"vps-clash-aio-bootstrap.sh\"
+    test -s \"clash-docker-prereq.inc.sh\"
+    sed -i 's/\r\$//' \"vps-clash-aio-bootstrap.sh\" \"clash-docker-prereq.inc.sh\"
+  " || {
+    echo \"错误：远端上传校验失败（zip/images/脚本缺失，或换行符修复失败）。\" >&2
+    exit 1
+  }
 
   echo "上传完成。SSH 登录后进入上传目录（与 VPS_DEPLOY_REMOTE_DIR 一致），执行:"
   echo "  sudo bash vps-clash-aio-bootstrap.sh ."
