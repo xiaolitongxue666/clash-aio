@@ -7,6 +7,11 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
+
+# shellcheck disable=SC1091
+. "${SCRIPT_DIR}/clash-compose-cmd.inc.sh"
+clash_compose_require || exit 1
+
 # shellcheck disable=SC1091
 . "${SCRIPT_DIR}/clash-env.inc.sh"
 
@@ -21,15 +26,6 @@ fi
 
 if ! grep -qE '^RAW_SUB_URL=.+' .env; then
   echo "请在 .env 中设置 RAW_SUB_URL=你的订阅地址 后重新运行本脚本。"
-  exit 1
-fi
-
-if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
-  COMPOSE_CMD="docker compose"
-elif command -v docker-compose >/dev/null 2>&1; then
-  COMPOSE_CMD="docker-compose"
-else
-  echo "未找到 docker compose 或 docker-compose，请确保 Docker Desktop 已安装并启动。"
   exit 1
 fi
 
@@ -60,9 +56,9 @@ fi
 
 if [ "$prefer_no_build" -eq 1 ]; then
   echo "检测到本地 clash-with-ui 镜像，使用 --no-build 直接启动。"
-  $COMPOSE_CMD up -d --no-build
+  $COMPOSE_CMD -f "$COMPOSE_FILE" up -d --no-build
 else
-  $COMPOSE_CMD up -d
+  $COMPOSE_CMD -f "$COMPOSE_FILE" up -d
 fi
 
 echo "等待服务就绪..."
@@ -81,18 +77,18 @@ while [ $waited -lt $MAX_WAIT ]; do
 done
 
 if [ $waited -ge $MAX_WAIT ]; then
-  echo "等待超时，请检查容器状态：$COMPOSE_CMD ps 与 $COMPOSE_CMD logs clash-with-ui"
+  echo "等待超时，请检查容器状态：$COMPOSE_CMD -f $COMPOSE_FILE ps 与 $COMPOSE_CMD -f $COMPOSE_FILE logs clash-with-ui"
 fi
 
 echo ""
 echo "--- 容器状态 ---"
-$COMPOSE_CMD ps
+$COMPOSE_CMD -f "$COMPOSE_FILE" ps
 
 echo ""
 if docker exec clash-with-ui test -f /root/.config/clash/config.yaml 2>/dev/null; then
   echo "订阅已拉取：config.yaml 已生成"
 else
-  echo "若控制面板无法使用，可查看日志：$COMPOSE_CMD logs -f clash-with-ui"
+  echo "若控制面板无法使用，可查看日志：$COMPOSE_CMD -f $COMPOSE_FILE logs -f clash-with-ui"
 fi
 
 if curl -x "http://127.0.0.1:${PROXY_PORT}" -s -o /dev/null -w "%{http_code}" --connect-timeout 5 "https://www.gstatic.com/generate_204" 2>/dev/null | grep -q '204'; then

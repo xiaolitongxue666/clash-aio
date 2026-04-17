@@ -9,17 +9,9 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
-if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
-  COMPOSE_CMD="docker compose"
-elif command -v docker-compose >/dev/null 2>&1; then
-  COMPOSE_CMD="docker-compose"
-else
-  echo "错误：未找到 docker compose 或 docker-compose。"
-  exit 1
-fi
-
-COMPOSE_FILE="docker-compose.yaml"
-[ -f "$COMPOSE_FILE" ] || { echo "错误：未找到 $COMPOSE_FILE"; exit 1; }
+# shellcheck disable=SC1091
+. "${SCRIPT_DIR}/clash-compose-cmd.inc.sh"
+clash_compose_require || exit 1
 
 echo "正在停止容器..."
 $COMPOSE_CMD -f "$COMPOSE_FILE" down 2>/dev/null || true

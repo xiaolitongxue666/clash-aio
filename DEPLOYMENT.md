@@ -11,6 +11,42 @@
 - 服务器：Linux（支持 Podman）
 - 本地：macOS/Linux（支持 Docker）
 
+## 一点二五、本机一键（`clash-aio-local.sh`）
+
+与 VPS「先准备镜像再启动」对齐的本地流程（Docker Compose，项目根执行）：
+
+```bash
+./clash-aio-local.sh pull          # compose pull + build --pull（含 subconverter 与 Dockerfile 基础层）
+./clash-aio-local.sh up            # 与 ./clash-compose-up.sh 相同：.env / RAW_SUB_URL、宿主机三端口预检、down、up -d
+./clash-aio-local.sh all           # 依次 pull 再 up（可选端口参数：./clash-aio-local.sh all 7891）
+./clash-aio-local.sh shell         # 进入 clash-with-ui 容器（优先 sh，失败则 bash）
+```
+
+**开发挂载**：将 [`docker-compose.override.example.yaml`](docker-compose.override.example.yaml) 复制为同目录下的 `docker-compose.override.yaml`（该文件名已在 [`.gitignore`](.gitignore)），可把仓库内 [`preprocess.sh`](preprocess.sh) 绑定到容器内 `/usr/bin/preprocess.sh`，改脚本后重启容器即可验证，无需每次 `build`。
+
+## 一点五、一键上 VPS（`deploy-remote.sh`）
+
+开发机需 **Docker**（`docker compose` 或 `docker-compose`）、`bash`、`zip`、`tar`、`gzip`。Windows 建议在 **Git Bash** 下执行脚本。
+
+1. 复制 [`.env.example`](.env.example) 为 `.env`，填写 `RAW_SUB_URL`，并按注释填写 **`VPS_DEPLOY_*`**：`VPS_DEPLOY_SSH_HOST`、`VPS_DEPLOY_SSH_PORT`（默认 22）、`VPS_DEPLOY_SSH_USER`、`VPS_DEPLOY_SSH_KEY`（本机私钥路径，可选）、`VPS_DEPLOY_REMOTE_DIR`（远端上传目录，如 `~/clash-aio-upload/`）、`VPS_DEPLOY_DEPLOY_DIR`（解压与启动目录，默认 `/opt/clash-aio`）、**`VPS_DEPLOY_CONTAINER_ENGINE`**（`docker` 或 **`podman`**，与 VPS 实际安装一致）。
+2. 在项目根执行：
+
+```bash
+./deploy-remote.sh pack    # 生成 dist/clash-aio-bundle.zip 与 dist/clash-aio-images.tar.gz
+./deploy-remote.sh upload  # 按 .env 中 VPS_DEPLOY_* 将产物与 vps-clash-aio-bootstrap.sh scp 到远端并做命令预检
+# 或一条命令: ./deploy-remote.sh all
+```
+
+3. SSH 登录 VPS，进入 **`VPS_DEPLOY_REMOTE_DIR`** 所指目录（内含上述 zip、镜像包与 `vps-clash-aio-bootstrap.sh`），执行：
+
+```bash
+sudo bash vps-clash-aio-bootstrap.sh .
+```
+
+一键脚本会：从 zip 读取 `.env` 以确定 `VPS_DEPLOY_DEPLOY_DIR` 与容器引擎 → 解压项目到该目录 → 解压镜像包并 **`docker`/`podman` load** → 为 Podman 打 `localhost/*:latest` 标签（与 [`podman-compose.yaml`](podman-compose.yaml) 一致）→ **`source` [`clash-env.inc.sh`](clash-env.inc.sh)** 并执行与本地相同的**宿主机三端口预检**（`ALL_PROXY_PORT` / `CONTROL_PANEL_PORT` / `SUBCONVERTER_HOST_PORT`，冲突则醒目提示并退出，须改 `.env` 后重试）→ **`docker compose` 或 `podman-compose` up -d**。
+
+以下「二、三…」为**手工**上传与 [`deploy-server.sh`](deploy-server.sh) 流程，仍可对照使用。
+
 ---
 
 ## 二、文件上传清单

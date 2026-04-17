@@ -50,7 +50,8 @@ docker compose up -d
 
 | Action | Script | Notes |
 |--------|--------|--------|
-| Start stack | `./clash-compose-up.sh` | `docker compose down` then `up -d`; **before `up`**, `clash_require_env_ports_free_for_compose_up` (from `clash-env.inc.sh`) must pass; optional arg updates `ALL_PROXY_PORT` in `.env` first |
+| Local one-shot | `./clash-aio-local.sh` | `pull` (`compose pull` + `build --pull`), `up` (same as next row), `shell` (exec into `clash-with-ui`), `all` (`pull` then `up`); optional port: `./clash-aio-local.sh up 7891` |
+| Start stack | `./clash-compose-up.sh` | Delegates to `clash-aio-local.sh up`: `docker compose down` then `up -d`; **before `up`**, `clash_require_env_ports_free_for_compose_up` (from `clash-env.inc.sh`) must pass; optional arg updates `ALL_PROXY_PORT` in `.env` first |
 | Stop stack | `./clash-compose-down.sh` | `docker compose -f docker-compose.yaml down` |
 | Start + verify | `./clash-compose-up-verify.sh` | Same port preflight as above, then `compose up -d`, readiness on `/version`, proxy probe (**recommended** on Windows Git Bash) |
 
@@ -90,7 +91,8 @@ Run `./clash-subscription-hot-reload.sh` on a schedule (cron on Linux/WSL/Git Ba
 
 | Script | Purpose | Example |
 |--------|---------|---------|
-| `clash-compose-up.sh` | Start stack; host port preflight before `up` | `./clash-compose-up.sh` |
+| `clash-aio-local.sh` | Local `pull` / `up` / `shell` / `all` | `./clash-aio-local.sh all` |
+| `clash-compose-up.sh` | Start stack (delegates to `clash-aio-local.sh up`); host port preflight before `up` | `./clash-compose-up.sh` |
 | `clash-compose-down.sh` | Stop and remove the stack | `./clash-compose-down.sh` |
 | `clash-compose-up-verify.sh` | Start + `.env` / host port preflight / readiness / proxy checks | `./clash-compose-up-verify.sh` |
 | `clash-verify-mixed-proxy-portmap.sh` | Verify Clash mixed proxy through Compose host port map | `./clash-verify-mixed-proxy-portmap.sh` |
@@ -99,7 +101,7 @@ Run `./clash-subscription-hot-reload.sh` on a schedule (cron on Linux/WSL/Git Ba
 | `clash-subscription-hot-reload.sh` | Hot-reload subscription (no container rebuild) | `./clash-subscription-hot-reload.sh` |
 | `clash-subscription-rebuild.sh` | Recreate Clash container to re-fetch subscription | `./clash-subscription-rebuild.sh` |
 
-Also: `deploy-server.sh`, `fix-images.sh` (deploy / image fixes); `clash-env.inc.sh` is sourced by host scripts for shared port parsing (not run directly). Container entrypoint is `preprocess.sh` (do not rename).
+Also: `deploy-remote.sh`, `vps-clash-aio-bootstrap.sh` (VPS one-shot), `deploy-server.sh`, `fix-images.sh` (deploy / image fixes); `clash-env.inc.sh` and `clash-compose-cmd.inc.sh` are sourced by host scripts (not run directly). Optional dev: copy `docker-compose.override.example.yaml` to `docker-compose.override.yaml` to bind-mount `preprocess.sh`. Container entrypoint is `preprocess.sh` (do not rename).
 
 ## Dependencies
 

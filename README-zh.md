@@ -54,7 +54,8 @@ docker compose up -d
 
 | 操作 | 脚本 | 说明 |
 |------|------|------|
-| 启动栈 | `./clash-compose-up.sh` | `docker compose down` 后 `up -d`；**`up` 前**执行 `clash_require_env_ports_free_for_compose_up`（`clash-env.inc.sh`）；可选参数先写回 `ALL_PROXY_PORT` |
+| 本机一键 | `./clash-aio-local.sh` | `pull`（`compose pull` + `build --pull`）、`up`（同下行）、`shell`（进容器）、`all`（先 `pull` 再 `up`）；可选端口：`./clash-aio-local.sh up 7891` |
+| 启动栈 | `./clash-compose-up.sh` | 转调 `clash-aio-local.sh up`：`docker compose down` 后 `up -d`；**`up` 前**执行 `clash_require_env_ports_free_for_compose_up`（`clash-env.inc.sh`）；可选参数先写回 `ALL_PROXY_PORT` |
 | 停止栈 | `./clash-compose-down.sh` | 对 `docker-compose.yaml` 执行 `docker compose down` |
 | 启动并验证 | `./clash-compose-up-verify.sh` | 检查 `.env`、**同上宿主机三端口预检**、`compose up`、探测 `/version` 与代理（**推荐**，尤其 Windows Git Bash） |
 
@@ -97,7 +98,8 @@ export all_proxy=socks5://[服务器IP]:<ALL_PROXY_PORT>
 
 | 脚本 | 用途 | 典型命令 |
 |------|------|----------|
-| `clash-compose-up.sh` | 启动栈；`up` 前宿主机端口预检 | `./clash-compose-up.sh` |
+| `clash-aio-local.sh` | 本地 pull / up / shell / all | `./clash-aio-local.sh all` |
+| `clash-compose-up.sh` | 启动栈（转调 `clash-aio-local.sh up`）；`up` 前宿主机端口预检 | `./clash-compose-up.sh` |
 | `clash-compose-down.sh` | 停止并移除栈 | `./clash-compose-down.sh` |
 | `clash-compose-up-verify.sh` | 启动 + `.env` / 宿主机端口预检 / 就绪 / 代理验证 | `./clash-compose-up-verify.sh` |
 | `clash-verify-mixed-proxy-portmap.sh` | 经 Compose 端口映射验证容器 Clash mixed | `./clash-verify-mixed-proxy-portmap.sh` |
@@ -106,7 +108,7 @@ export all_proxy=socks5://[服务器IP]:<ALL_PROXY_PORT>
 | `clash-subscription-hot-reload.sh` | 订阅热重载（无容器重建） | `./clash-subscription-hot-reload.sh` |
 | `clash-subscription-rebuild.sh` | 重建 Clash 容器以重拉订阅 | `./clash-subscription-rebuild.sh` |
 
-另有 `deploy-server.sh`、`fix-images.sh`（部署与镜像修复）；`clash-env.inc.sh` 供各脚本 `source` 统一解析端口，勿单独执行。容器内入口为 `preprocess.sh`（勿改名）。
+另有 `deploy-remote.sh`、`vps-clash-aio-bootstrap.sh`（VPS 一键）、`deploy-server.sh`、`fix-images.sh`（部署与镜像修复）；`clash-env.inc.sh`、`clash-compose-cmd.inc.sh` 供各脚本 `source`，勿单独执行。开发可选：复制 `docker-compose.override.example.yaml` 为 `docker-compose.override.yaml` 挂载 `preprocess.sh`。容器内入口为 `preprocess.sh`（勿改名）。
 
 ## 依赖
 

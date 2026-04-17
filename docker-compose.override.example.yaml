@@ -1,0 +1,6 @@
+# 复制为 docker-compose.override.yaml（已被 .gitignore）后，compose 会自动合并。
+# 用于本地开发：将仓库内 preprocess.sh 挂入容器入口，改脚本后重启容器即可生效，无需每次 build。
+services:
+  clash-with-ui:
+    volumes:
+      - ./preprocess.sh:/usr/bin/preprocess.sh:ro

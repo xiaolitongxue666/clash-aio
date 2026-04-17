@@ -11,18 +11,22 @@
 | [Dockerfile](Dockerfile) | 基于 `dreamacro/clash`；下载 YACD；修补 `index.html`；`COPY preprocess.sh` 后 **`RUN sed` 去掉 CRLF** 并 `chmod +x`；`ENTRYPOINT` 为 `/usr/bin/preprocess.sh` |
 | [preprocess.sh](preprocess.sh) | 容器入口：无本地 `config.yaml` 时从 subconverter（容器网络 `:25500`）拉取；失败则写入含 `external-controller` / `external-ui` 的最小配置；`allow-lan`；`exec /clash -ext-ui /ui/public` |
 | [docker-compose.yaml](docker-compose.yaml) | `subconverter` + `clash-with-ui`；`env_file: .env`；映射 **`${SUBCONVERTER_HOST_PORT:-25500}:25500`**、`$ALL_PROXY_PORT:7890`、`$CONTROL_PANEL_PORT:9090`（右侧为容器内固定端口） |
+| [docker-compose.override.example.yaml](docker-compose.override.example.yaml) | 可选开发覆盖：复制为 `docker-compose.override.yaml`（已 `.gitignore`）以 bind `preprocess.sh` 等 |
 | [.gitattributes](.gitattributes) | `*.sh` / `*.inc.sh` 使用 `eol=lf`，减轻 Windows 检出 CRLF 导致的问题 |
 | [podman-compose.yaml](podman-compose.yaml) | Podman 场景下的等价编排（含端口/卷等与 Docker 的差异） |
 | [subconverter/](subconverter/) | `all_base.tpl`、`pref.toml`：控制 subconverter 输出的 Clash 配置形态（如 `external-controller`、`external-ui`） |
 | [.env.example](.env.example) | `RAW_SUB_URL`、`ALL_PROXY_PORT`、`CONTROL_PANEL_PORT`、`SUBCONVERTER_HOST_PORT` 示例 |
 | [clash-env.inc.sh](clash-env.inc.sh) | 宿主机脚本 `source`：解析端口，并提供 `clash_require_env_ports_free_for_compose_up`（`compose up` 前校验宿主机端口） |
+| [clash-compose-cmd.inc.sh](clash-compose-cmd.inc.sh) | 宿主机脚本 `source`：`clash_compose_require` 设置 `COMPOSE_CMD` / `COMPOSE_FILE` |
+| [clash-aio-local.sh](clash-aio-local.sh) / [deploy-remote.sh](deploy-remote.sh) / [vps-clash-aio-bootstrap.sh](vps-clash-aio-bootstrap.sh) | 本地一键 `pull`/`up`/`shell`/`all`；VPS 侧 `pack`/`upload` 与 **sudo** 下一键解压、导入镜像、启动 |
 | 宿主机脚本（`clash-*.sh`） | 见下表；完整命令与示例见 [README-zh.md「脚本一览」](README-zh.md#脚本一览)、[README.md「Script index」](README.md#script-index) |
 
 **宿主机脚本速查**
 
 | 脚本 | 作用 |
 |------|------|
-| [clash-compose-up.sh](clash-compose-up.sh) | 启动栈（`down` 后 `up -d`）；`up` 前 **`clash_require_env_ports_free_for_compose_up`**；可选参数写回 `ALL_PROXY_PORT` |
+| [clash-compose-up.sh](clash-compose-up.sh) | 薄封装：转调 [`clash-aio-local.sh`](clash-aio-local.sh) `up`（`down` 后 `up -d`；`up` 前 **`clash_require_env_ports_free_for_compose_up`**；可选参数写回 `ALL_PROXY_PORT`） |
+| [clash-aio-local.sh](clash-aio-local.sh) | 本地：`pull`（`compose pull` + `build --pull`）、`up`（同上）、`shell`（`exec` 进 `clash-with-ui`）、`all`（`pull` 后 `up`） |
 | [clash-compose-down.sh](clash-compose-down.sh) | 对本仓库 `docker-compose.yaml` 执行 `docker compose down` |
 | [clash-compose-up-verify.sh](clash-compose-up-verify.sh) | 检查 `.env`、**同上端口预检**、`compose up -d`、轮询 `/version` 与代理探测（日常推荐） |
 | [clash-verify-mixed-proxy-portmap.sh](clash-verify-mixed-proxy-portmap.sh) | 经 `ALL_PROXY_PORT`（`.env`）与 Docker 端口映射验证容器内 Clash mixed 是否出网 |
@@ -37,7 +41,7 @@
 2. **拉取失败**：写入最小 `config.yaml`（含 `external-controller: :9090`、`external-ui: /ui/public`、`allow-lan: true`、`mixed-port: 7890`、空规则等），保证控制面与 YACD 仍可用。
 3. **运行**：Clash 以 `-ext-ui /ui/public` 启动；`subconverter/all_base.tpl` 中 Clash 段约定 `external-controller: :9090`、`external-ui: /ui/public`，与镜像内路径一致。
 4. **宿主机访问**：混合代理口映射为 `ALL_PROXY_PORT → 容器 7890`；控制面（REST API + YACD 静态页）映射为 `CONTROL_PANEL_PORT → 容器 9090`；subconverter 宿主机端口为 **`SUBCONVERTER_HOST_PORT`（默认 25500）** 映射到容器 `25500`。
-5. **启动前宿主机端口**：`clash-compose-up.sh` 与 `clash-compose-up-verify.sh` 在 `compose up` 前调用 `clash_require_env_ports_free_for_compose_up`（见 `clash-env.inc.sh`）：三端口须空闲，或已是本栈 `docker port` 对应映射；否则醒目报错并退出（**不会**自动改写 `.env` 换端口）。
+5. **启动前宿主机端口**：`clash-aio-local.sh up` / `clash-compose-up.sh` 与 `clash-compose-up-verify.sh` 在 `compose up` 前调用 `clash_require_env_ports_free_for_compose_up`（见 `clash-env.inc.sh`）：三端口须空闲，或已是本栈 `docker port` / `podman port` 对应映射；否则醒目报错并退出（**不会**自动改写 `.env` 换端口）。
 
 ```mermaid
 flowchart LR
@@ -73,7 +77,8 @@ flowchart LR
 - **改首次拉取订阅、重试、兜底配置、监听 LAN**：`preprocess.sh`
 - **改 Web UI 资源或 API 基址相关补丁**：`Dockerfile` 中 YACD 相关步骤
 - **改服务依赖、端口映射、镜像构建**：`docker-compose.yaml` / `podman-compose.yaml`
-- **改宿主机端口解析或 compose 启动前端口校验**：`clash-env.inc.sh`、`clash-compose-up.sh`、`clash-compose-up-verify.sh`
+- **改宿主机端口解析或 compose 启动前端口校验**：`clash-env.inc.sh`、`clash-aio-local.sh`、`clash-compose-up-verify.sh`
+- **改 compose 命令探测**：`clash-compose-cmd.inc.sh`
 
 ## 技术栈（一句话）
 
