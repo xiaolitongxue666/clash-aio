@@ -10,6 +10,12 @@ Clash 懒人全家桶是一个基于 Docker Compose 的 Clash 一键部署方案
 - 路由器/Nas 无痛快速部署
 - 服务器上快速部署临时使用，用完即删
 
+## 独立前置代理平面（与 vps_construct 等消费者）
+
+本仓库可作为与业务/装机**解耦**的**出站代理平面**：对外只承诺 **`.env` 中的端口契约**（`ALL_PROXY_PORT`、`CONTROL_PANEL_PORT`、`SUBCONVERTER_HOST_PORT`）与启动前**宿主机端口预检**（见 `clash-env.inc.sh`）；不替消费者自动改端口。消费者可选设置 `HTTP_PROXY` / `HTTPS_PROXY` / `ALL_PROXY` 指向本栈 mixed 口。**生命周期**在本仓库内完成（`clash-aio-local.sh`、`deploy-remote.sh`、`vps-clash-aio-bootstrap.sh` 等），**不必**作为其它仓库的子模块。
+
+与 **vps_construct_scripts** QEMU 严格路径常用的离线包命名（`clash-aio-main.zip` + `clash-aio-images.tar`）和本仓库 **`deploy-remote.sh pack`** 产物（`dist/clash-aio-bundle.zip` + `dist/clash-aio-images.tar.gz`）是**两条线**，勿混为一种「真理」；衔接方式见 [DEPLOYMENT.md](DEPLOYMENT.md) 一点五节。
+
 ## 功能
 
 - 基于 Clash 的 proxy-providers 自动更新订阅

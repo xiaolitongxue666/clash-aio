@@ -45,6 +45,8 @@ sudo bash vps-clash-aio-bootstrap.sh .
 
 一键脚本会：从 zip 读取 `.env` 以确定 `VPS_DEPLOY_DEPLOY_DIR` 与容器引擎 → 解压项目到该目录 → 解压镜像包并 **`docker`/`podman` load** → 为 Podman 打 `localhost/*:latest` 标签（与 [`podman-compose.yaml`](podman-compose.yaml) 一致）→ **`source` [`clash-env.inc.sh`](clash-env.inc.sh)** 并执行与本地相同的**宿主机三端口预检**（`ALL_PROXY_PORT` / `CONTROL_PANEL_PORT` / `SUBCONVERTER_HOST_PORT`，冲突则醒目提示并退出，须改 `.env` 后重试）→ **`docker compose` 或 `podman-compose` up -d**。
 
+**与 vps_construct_scripts（QEMU / `SCP_TO_VM_STRICT`）**：该仓库的 `common/lib/scp-to-vm-preflight.sh` 在 **`SCP_CLASH_AIO_ZIP_AUTO=1`** 且严格模式下，要求离线 zip 满足其一：**`CLASH_AIO_ZIP_PATH`** 指向现有文件、或 **vps 仓库根** `clash-aio-main.zip`、或 **`dist/clash-aio-bundle.zip`**（可把本仓库 `pack` 产物复制到 vps 仓库该路径）。上传时远端仍统一为 **`~/clash-aio-main.zip`**，以便 `vps-bootstrap` 默认 `CLASH_AIO_LOCAL_ZIP` 解压。镜像侧：其 **`clash-aio-images.tar`** 为单流 `docker load -i`，**与**本目录 `dist/clash-aio-images.tar.gz`（bootstrap 内先解压再 load）**语义不同**；若只走 vps 严格路径，请按 vps 文档准备 **`.tar`** 包，或仅用 vps 流程认可的产物，勿假定 gzip 包可互换。
+
 以下「二、三…」为**手工**上传与 [`deploy-server.sh`](deploy-server.sh) 流程，仍可对照使用。
 
 ---

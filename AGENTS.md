@@ -4,6 +4,13 @@
 
 详细安装与部署步骤见 [README.md](README.md)、[README-zh.md](README-zh.md)、[DEPLOYMENT.md](DEPLOYMENT.md)。
 
+## 独立前置出站代理平面（与编排消费者的关系）
+
+- **定位**：本仓库是边界清晰的**出站代理平面**——在约定宿主机端口提供 mixed 代理、控制面（REST + YACD）以及 Compose 内的 subconverter；**不承载**业务应用、VPS 装机编排或 CI 主逻辑，也**不反向依赖**消费者仓库的实现细节。
+- **对外契约**：消费者唯一应稳定依赖的是运行时端口与行为——端口来自 [`.env.example`](.env.example) / 实际 `.env` 的 `ALL_PROXY_PORT`、`CONTROL_PANEL_PORT`、`SUBCONVERTER_HOST_PORT`；启动前由 [`clash-env.inc.sh`](clash-env.inc.sh) 做宿主机端口预检，占用则退出，**不会**替消费者自动改写端口。可选地，消费者自行设置 `HTTP_PROXY` / `HTTPS_PROXY` / `ALL_PROXY` 指向 `http://127.0.0.1:${ALL_PROXY_PORT}`（或主机名），超时与降级策略留在消费者侧。
+- **生命周期**：本仓库内 [`clash-aio-local.sh`](clash-aio-local.sh) / [`clash-compose-down.sh`](clash-compose-down.sh) 独立启停；远端 [`deploy-remote.sh`](deploy-remote.sh) + [`vps-clash-aio-bootstrap.sh`](vps-clash-aio-bootstrap.sh)。与 **vps_construct_scripts** 的关系：后者是装机/编排流水，可把本栈当作**可选前置**（先起代理或先 scp 离线包），但不应把本仓库的 compose/镜像构建绑死为其唯一真源；文档互链与可选预检见 [DEPLOYMENT.md](DEPLOYMENT.md) 一点五节附近。
+- **两条交付物勿混用**：QEMU / vps 严格 scp 路径常见 **`clash-aio-main.zip`** + **`clash-aio-images.tar`**（单流 `docker load -i`）；本仓库 **`./deploy-remote.sh pack`** 产出 **`dist/clash-aio-bundle.zip`** + **`dist/clash-aio-images.tar.gz`**（bootstrap 内解压再 load）。bundle 镜像包**不能**直接替代消费者侧对 `docker load -i` 单流 tar 的约定，除非消费者脚本显式支持。
+
 ## 仓库地图（关键路径）
 
 | 路径 | 作用 |
