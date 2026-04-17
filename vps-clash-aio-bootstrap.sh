@@ -218,8 +218,15 @@ if [ "$ENGINE" = "podman" ]; then
   "$ENGINE" tag "${CLASH_LOADED}" "localhost/clash-with-ui:latest"
   "$ENGINE" tag "${SUB_LOADED}" "localhost/subconverter:latest"
 elif [ "$ENGINE" = "docker" ]; then
-  # docker compose 使用 clash-aio-clash-with-ui 与 tindy2013/subconverter；load 后一般已具备正确引用名
-  :
+  # docker compose 期望 clash-aio-clash-with-ui:latest；docker load 后常为 clash-aio_clash-with-ui:latest（下划线）
+  CLASH_LOADED=$("$ENGINE" images --format "{{.Repository}}:{{.Tag}}" | grep -E "clash-aio_clash-with-ui|clash-aio-clash-with-ui" | head -1 || true)
+  if [ -z "$CLASH_LOADED" ]; then
+    CLASH_LOADED=$("$ENGINE" images --format "{{.Repository}}:{{.Tag}}" | grep "clash-with-ui" | grep -v "localhost/" | head -1 || true)
+  fi
+  if [ -n "$CLASH_LOADED" ] && [ "$CLASH_LOADED" != "clash-aio-clash-with-ui:latest" ]; then
+    echo "docker tag ${CLASH_LOADED} -> clash-aio-clash-with-ui:latest"
+    "$ENGINE" tag "$CLASH_LOADED" "clash-aio-clash-with-ui:latest"
+  fi
 fi
 
 if [ -f "${DEPLOY_DIR}/preprocess.sh" ]; then

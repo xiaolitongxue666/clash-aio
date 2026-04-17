@@ -132,6 +132,8 @@ cmd_pack() {
       clash-compose-cmd.inc.sh \
       clash-docker-prereq.inc.sh \
       clash-aio-local.sh \
+      clash-compose-up-verify.sh \
+      clash-verify-mixed-proxy-portmap.sh \
       vps-clash-aio-bootstrap.sh \
       deploy-server.sh \
       subconverter \
@@ -199,6 +201,13 @@ cmd_upload() {
     fi
     ssh_opts+=(-i "$key" -o "IdentitiesOnly=yes")
     scp_opts+=(-i "$key" -o "IdentitiesOnly=yes")
+  fi
+
+  # QEMU/本机回环：常见 host key 轮换导致 StrictHostKeyChecking 失败；远端 VPS 仍保持默认严格校验
+  host_lc="$(printf '%s' "$host" | tr '[:upper:]' '[:lower:]')"
+  if [ "$host_lc" = "127.0.0.1" ] || [ "$host_lc" = "localhost" ]; then
+    ssh_opts+=(-o "StrictHostKeyChecking=accept-new")
+    scp_opts+=(-o "StrictHostKeyChecking=accept-new")
   fi
 
   echo "预检远端命令（engine=${engine}）..."
