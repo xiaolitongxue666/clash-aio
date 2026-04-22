@@ -2,6 +2,12 @@
 
 [中文](README-zh.md) [English](README.md)
 
+> **Archived Repository / 仓库已封存**
+>
+> This repository is archived and no longer maintained. Please use **mihomo-aio** instead: [https://github.com/xiaolitongxue666/mihomo-aio](https://github.com/xiaolitongxue666/mihomo-aio)
+>
+> 本仓库已封存，不再维护。推荐使用 **mihomo-aio**： [https://github.com/xiaolitongxue666/mihomo-aio](https://github.com/xiaolitongxue666/mihomo-aio)
+
 Lazy Clash is a one-click deployment solution for Clash based on Docker Compose. It can help you quickly set up a Clash proxy service with automatically updated subscriptions. —— by ChatGPT
 
 ## Workspace context (multi-repo layout)
